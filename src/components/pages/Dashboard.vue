@@ -1,0 +1,9 @@
+<template>
+    <h2>Dashboard page</h2>
+</template>
+
+<script>
+    export default {
+        name: 'Dashboard'
+    }
+</script>
