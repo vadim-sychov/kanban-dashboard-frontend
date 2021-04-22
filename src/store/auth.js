@@ -1,8 +1,7 @@
-import AxiosWrapper from './AxiosWrapper';
+import axios from 'axios'
 
 export default {
     auth(username, password) {
-        let data  = {username: username, password: password};
-        return AxiosWrapper.post(`api/login`, data);
+        return axios.post(`api/login_check`, {username: username, password: password});
     },
 };

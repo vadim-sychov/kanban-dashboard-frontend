@@ -16,6 +16,6 @@ export default {
     },
 
     preparePath: function (path) {
-        return path + '?token=' + localStorage.authData;
+        return path + '?token=' + localStorage.authToken;
     }
 }
