@@ -46,15 +46,19 @@
                 swimlanes: [ // TODO get it from storage
                     {
                         "id": 1,
-                        "name": "Розробка",
-                    }
+                        "name": "Головна дошка",
+                    },
+                    {
+                        "id": 2,
+                        "name": "Дошка №2",
+                    },
                 ],
-                priorities: [ //TODO get it from storage
-                    {"id":1,"name":"Низький","positionNumber":0,"color":"#409600"},
-                    {"id":2,"name":"Нормальний","positionNumber":1,"color":"#FED74A"},
-                    {"id":3,"name":"Високий","positionNumber":2,"color":"#FF7123"},
-                    {"id":4,"name":"Критичний","positionNumber":3,"color":"#DC0083"}
-                ],
+                // priorities: [ //TODO get it from storage
+                //     {"id":1,"name":"Низький","positionNumber":0,"color":"#409600"},
+                //     {"id":2,"name":"Нормальний","positionNumber":1,"color":"#FED74A"},
+                //     {"id":3,"name":"Високий","positionNumber":2,"color":"#FF7123"},
+                //     {"id":4,"name":"Критичний","positionNumber":3,"color":"#DC0083"}
+                // ],
                 columns: [ //TODO get it from storage
                     {"id":1,"name":"Зробити","positionNumber":0},
                     {"id":2,"name":"В процесі","positionNumber":1},
@@ -73,11 +77,36 @@
                         },
                         priority: {
                             id: 1,
-                            name: 'Major',
+                            name: 'Нормальний',
                             color: '#FED74A'
                         },
                         swimlane: {
                             "id":1,
+                            "name":"Розробка",
+                        },
+                        column: {
+                            "id":3,
+                            "name":"Тестування",
+                            "positionNumber":2
+                        }
+                    },
+
+                    {
+                        id: 1,
+                        title: 'Test task title',
+                        executor: {
+                            "id": 6,
+                            "email": "writer@maze.com",
+                            "role": "ROLE_WRITER",
+                            "password": ""
+                        },
+                        priority: {
+                            id: 1,
+                            name: 'Нормальний',
+                            color: '#FED74A'
+                        },
+                        swimlane: {
+                            "id":2,
                             "name":"Розробка",
                         },
                         column: {
@@ -221,7 +250,7 @@
             this.swimlanes.forEach(function (swimlane, index) {
                 swimlanesResult[index] = {
                     'title': swimlane['name'],
-                    'columns': [],
+                    'columns': [], //TODO get collumn for swimlane
                 };
 
                 let columnsResult = {};
