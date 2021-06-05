@@ -1,169 +1,145 @@
 <template>
     <div>
-        <div v-for="(swimlane, index) in swimlanesKanban"  v-bind:key="index">
-            <b>{{swimlane.title}}</b>
-            <hr>
-            <div class="flex justify-center">
-                <div class="min-h-screen flex overflow-x-scroll py-12">
-                    <div v-for="(column, index) in swimlane.columns" :key="index" class="bg-gray-100 rounded-lg px-3 py-3 column-width rounded mr-4">
-                        <p class="text-gray-700 font-semibold font-sans tracking-wide text-sm">{{column.title}}</p>
-                        <draggable
-                            :list="column.tasks"
-                            :animation="200"
-                            :empty-insert-threshold="100"
-                            ghost-class="ghost-card"
-                            group="tasks"
-                            @change="onMove"
-                        >
-                            <task-card
-                                v-for="(task, index) in column.tasks"
-                                :key="index"
-                                :task="task"
-                                class="mt-3 cursor-move"
-                                @dblclick.native="doubleClick(task.id)"
-                            ></task-card>
-                        </draggable>
-                    </div>
+        <div class="align-content-space-between justify-space-between flex">
+            <b style="padding-top: 10px">{{currentSwimlane.name}}</b>
+            <v-btn v-if="$store.getters.isAdminRole" class="mb-2" color="success" align="right" dark @click="newTaskClick"><v-icon left>add</v-icon> Нова задача</v-btn>
+        </div>
+        <hr>
+        <div class="flex justify-center">
+            <div class="min-h-screen flex overflow-x-scroll py-12">
+                <div v-for="(column, index) in currentSwimlane.columns" :key="index" class="bg-gray-100 rounded-lg px-3 py-3 column-width rounded mr-4">
+                    <p class="text-gray-700 font-semibold font-sans tracking-wide text-sm">{{column.title}}</p>
+                    <draggable
+                        :list="column.tasks"
+                        :animation="200"
+                        :empty-insert-threshold="100"
+                        ghost-class="ghost-card"
+                        group="tasks"
+                        @change="onMove"
+                    >
+                        <task-card
+                            v-for="(task, index) in column.tasks"
+                            :key="index"
+                            :task="task"
+                            class="mt-3 cursor-move"
+                            @dblclick.native="doubleClick(task)"
+                        ></task-card>
+                    </draggable>
                 </div>
-
             </div>
         </div>
-        <router-view/>
+
+        <task-dialog
+            v-if="taskDialog"
+            :taskData="editedTask"
+            :swimlanes="swimlanes"
+            :columns="columns"
+            :priorities="priorities"
+            :users="users"
+            @close="taskDialog = false"
+            @submit="updateTasks"
+        ></task-dialog>
+
+        <v-overlay :absolute="false" :value="isLoading">
+            <rotate-loader></rotate-loader>
+        </v-overlay>
     </div>
 </template>
 <script>
     import draggable from "vuedraggable";
     import TaskCard from '@/components/common/TaskCard'
+    import RotateLoader from 'vue-spinner/src/RotateLoader';
+
+    import swimlaneStore from "@/store/swimlane";
+    import columnStore from "@/store/column";
+    import taskStore from "@/store/task";
+    import priorityStore from "@/store/priority";
+    import userStore from "@/store/user";
+
+    import TaskDialog from "./TaskDialog";
 
     export default {
         name: 'KanbanBoard',
         components: {
             TaskCard,
             draggable,
+            RotateLoader,
+            TaskDialog
         },
         data() {
             return {
-                swimlanes: [ // TODO get it from storage
+                taskDialog: false,
+                editedTask: {},
+                isLoading: true,
+                currentSwimlaneId: 0,
+                swimlanes: [
                     {
                         "id": 1,
-                        "name": "Головна дошка",
-                    },
-                    {
-                        "id": 2,
-                        "name": "Дошка №2",
+                        "name": "Завантаження",
                     },
                 ],
-                // priorities: [ //TODO get it from storage
-                //     {"id":1,"name":"Низький","positionNumber":0,"color":"#409600"},
-                //     {"id":2,"name":"Нормальний","positionNumber":1,"color":"#FED74A"},
-                //     {"id":3,"name":"Високий","positionNumber":2,"color":"#FF7123"},
-                //     {"id":4,"name":"Критичний","positionNumber":3,"color":"#DC0083"}
-                // ],
-                columns: [ //TODO get it from storage
-                    {"id":1,"name":"Зробити","positionNumber":0},
-                    {"id":2,"name":"В процесі","positionNumber":1},
-                    {"id":3,"name":"Тестування","positionNumber":2},
-                    {"id":4,"name":"Готово","positionNumber":3},
-                ],
-                tasks: [
-                    {
-                        id: 1,
-                        title: 'Test task title',
-                        executor: {
-                            "id": 6,
-                            "email": "writer@maze.com",
-                            "role": "ROLE_WRITER",
-                            "password": ""
-                        },
-                        priority: {
-                            id: 1,
-                            name: 'Нормальний',
-                            color: '#FED74A'
-                        },
-                        swimlane: {
-                            "id":1,
-                            "name":"Розробка",
-                        },
-                        column: {
-                            "id":3,
-                            "name":"Тестування",
-                            "positionNumber":2
+                priorities: [],
+                columns: [],
+                tasks: [],
+                users: [],
+                currentSwimlane: {
+                    name: 'Завантаження',
+                    columns: [
+                        {
+                            name: 'Завантаження',
+                            id: 0,
+                            tasks: [],
                         }
-                    },
-
-                    {
-                        id: 1,
-                        title: 'Test task title',
-                        executor: {
-                            "id": 6,
-                            "email": "writer@maze.com",
-                            "role": "ROLE_WRITER",
-                            "password": ""
-                        },
-                        priority: {
-                            id: 1,
-                            name: 'Нормальний',
-                            color: '#FED74A'
-                        },
-                        swimlane: {
-                            "id":2,
-                            "name":"Розробка",
-                        },
-                        column: {
-                            "id":3,
-                            "name":"Тестування",
-                            "positionNumber":2
-                        }
-                    }
-                ],
-                swimlanesKanban: [
-                    {
-                        title: 'Завантаження',
-                        columns: [
-                            {
-                                title: 'Завантаження',
-                                id: 0,
-                                tasks: [],
-                            }
-                        ],
-                    }
-                ],
-                oldSwimlanesKanban: [],
+                    ],
+                },
+                oldCurrentSwimlane: {},
             }
         },
         methods: {
-            doubleClick(taskId) {
-                // TODO push to popup
-                this.$router.push({name: 'show_task_kanban', params: {id: taskId}});
+            doubleClick(task) {
+                this.editedTask = task;
+                this.taskDialog = true;
+            },
+            newTaskClick() {
+                this.editedTask = null;
+                this.taskDialog = true;
+            },
+            async updateTasks() {
+                this.isLoading = true;
+                this.taskDialog = false;
+
+                await taskStore.getAll().then(response => this.tasks = response.data.data);
+                this.buildInitialData();
+
+                this.isLoading = false;
             },
             onMove() {
-                if (JSON.stringify(this.oldSwimlanesKanban) === JSON.stringify(this.swimlanesKanban)) {
+                if (JSON.stringify(this.oldCurrentSwimlane) === JSON.stringify(this.currentSwimlane)) {
                     return;
                 }
 
-                let oldSwimlanesKanban = this.oldSwimlanesKanban;
-                let self = this;
+                let oldCurrentSwimlane = this.oldCurrentSwimlane;
 
-                this.swimlanesKanban.forEach(function (swimlane, sk) {
-                    for (const [ck, column] of Object.entries(swimlane.columns)) {
-                        let oldTasks = oldSwimlanesKanban[sk].columns[ck].tasks;
-                        if (column.tasks.length === oldTasks.length) {
-                            continue;
-                        }
-                        if (column.tasks.length > oldTasks.length) {
-                            let task = self.findMovedTask(oldTasks, column.tasks);
-                            self.changeTaskColumn(task)
-                        }
+                for (const [columnIndex, column] of Object.entries(this.currentSwimlane.columns)) {
+                    let oldTasks = oldCurrentSwimlane.columns[columnIndex].tasks;
 
-                        if (column.tasks.length < oldTasks.length) {
-                            let task = self.findMovedTask(column.tasks, oldTasks);
-                            self.changeTaskColumn(task);
-                        }
-                        return;
-
+                    if (column.tasks.length === oldTasks.length) {
+                        continue;
                     }
-                });
-                this.oldSwimlanesKanban = JSON.parse(JSON.stringify(this.swimlanesKanban));
+                    if (column.tasks.length > oldTasks.length) {
+                        let task = this.findMovedTask(oldTasks, column.tasks);
+                        this.changeTaskColumn(task)
+                    }
+
+                    if (column.tasks.length < oldTasks.length) {
+                        let task = this.findMovedTask(column.tasks, oldTasks);
+                        this.changeTaskColumn(task);
+                    }
+                    return;
+
+                }
+
+                this.oldCurrentSwimlane = JSON.parse(JSON.stringify(this.currentSwimlane));
 
             },
             findMovedTask(columnFrom, columnTo) {
@@ -183,79 +159,46 @@
                 }
                 return task;
             },
-            findMovedTaskNewColumn(taskToFind) {
-                let columnToFind = {};
-                let swimlaneToFind = {};
-
-                this.swimlanesKanban.forEach(function (swimlane) {
-                    loop1:
-                        // eslint-disable-next-line no-unused-vars
-                        for (const [index, column] of Object.entries(swimlane.columns)) {
-                            for (const task of column.tasks) {
-                                if (task.id === taskToFind.id) {
-                                    columnToFind = column;
-                                    swimlaneToFind = swimlane;
-                                    break loop1;
-                                }
-                            }
-
-                        }
-                    if (columnToFind.id !== undefined) {
-                        return;
-                    }
-                });
-
-                return [columnToFind, swimlaneToFind];
-            },
             changeTaskColumn(task) {
-                const res = this.findMovedTaskNewColumn(task);
-                let newColumn = res[0];
-                let newSwimlane = res[1];
+                let newColumn = this.findMovedTaskNewColumn(task);
+
                 newColumn = JSON.parse(JSON.stringify(newColumn));
                 newColumn.tasks = [];
                 task.column = newColumn;
-                if (!this.checkIsAbleToMoveTask(newColumn, task)) {
-                    alert('You are not able to move tasks to Posted column');
-                    this.$router.go();
-                }
-                this.swimlanesKanban.forEach(function (value, index) {
-                    if (value.title === newSwimlane.title) {
-                        task.swimlane.id = index + 1;
+
+                taskStore.update(task.id, task);
+            },
+            findMovedTaskNewColumn(taskToFind) {
+                let columnToFind = {};
+
+                loop1:
+                for (const [, column] of Object.entries(this.currentSwimlane.columns)) {
+                    for (const task of column.tasks) {
+                        if (task.id === taskToFind.id) {
+
+                            columnToFind = column;
+                            break loop1;
+                        }
                     }
-                });
-                this.$emit('updateTask', task);
+
+                }
+
+                return columnToFind;
             },
-            checkIsAbleToMoveTask(newColumn, task) {
-                if (newColumn.id !== 9) {
-                    return true;
-                }
+            async getInitialData() {
+                await swimlaneStore.getAll().then(response => this.swimlanes = response.data.data);
+                await taskStore.getAll().then(response => this.tasks = response.data.data);
+                await priorityStore.getAll().then(response => this.priorities = response.data.data);
+                await userStore.getAll().then(response => this.users = response.data.data);
 
-                let isWriter = this.$store.getters.getUser.id === task.writer.id;
+                this.currentSwimlane = this.swimlanes[this.currentSwimlaneId];
 
-                if (isWriter && this.$can('close_assigned', 'Task')) {
-                    return true;
-                }
-
-                if (!this.$can('close', 'Task')) {
-                    return false;
-                }
-
-                return true;
+                await columnStore.getAll(this.currentSwimlane['id']).then(response => this.columns = response.data.data);
             },
-        },
-        mounted() {
-            let self = this;
-            let swimlanesResult = [];
-
-            this.swimlanes.forEach(function (swimlane, index) {
-                swimlanesResult[index] = {
-                    'title': swimlane['name'],
-                    'columns': [], //TODO get collumn for swimlane
-                };
-
-                let columnsResult = {};
-                self.columns.forEach(function (column) {
-                    let columnNum = column['positionNumber'];
+            buildInitialData() {
+                let columnsResult = [];
+                this.columns.forEach((column) => {
+                    let columnNum = column['position'];
 
                     if (columnsResult[columnNum] === undefined) {
                         columnsResult[columnNum] = {
@@ -266,18 +209,24 @@
                     }
                 });
 
-                self.tasks.forEach(function (task) {
-                    let taskColumnNum = task['column']['positionNumber'];
-                    if (task['swimlane']['id'] === swimlane['id']) {
-                        columnsResult[taskColumnNum]['tasks'].push(task);
+                this.currentSwimlane['columns'] = columnsResult;
+
+                this.tasks.forEach((task) => {
+                    let taskColumnNum = task['column']['position'];
+                    if (task['swimlane']['id'] === this.currentSwimlane['id']) {
+                        this.currentSwimlane['columns'][taskColumnNum]['tasks'].push(task);
                     }
                 });
 
-                swimlanesResult[index]['columns'] = columnsResult;
-            });
+                this.currentSwimlane = JSON.parse(JSON.stringify(this.currentSwimlane));
+                this.oldCurrentSwimlane = JSON.parse(JSON.stringify(this.currentSwimlane));
+                this.isLoading = false;
+            }
+        },
+        async mounted() {
+            await this.getInitialData();
 
-            this.swimlanesKanban = swimlanesResult;
-            this.oldSwimlanesKanban = JSON.parse(JSON.stringify(swimlanesResult));
+            this.buildInitialData();
         },
     };
 </script>

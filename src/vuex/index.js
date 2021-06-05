@@ -9,11 +9,16 @@ export default new Vuex.Store({
             id: 0,
             email: '',
             role: '',
-        }
+        },
     },
     mutations: {
         saveUserData(state, userData) {
             state.userData = userData;
+        }
+    },
+    getters: {
+        isAdminRole(state) {
+            return state.userData.role === 'ROLE_ADMIN';
         }
     }
 })

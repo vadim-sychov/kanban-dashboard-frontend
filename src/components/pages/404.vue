@@ -1,8 +1,8 @@
 <template>
     <div>
-        <h2>Error 404</h2>
+        <h2>Помилка 404</h2>
         <p>
-            <router-link :to="{name: 'dashboard'}">Go on main page</router-link>
+            <router-link :to="{name: 'dashboard'}">На головну</router-link>
         </p>
     </div>
 </template>

@@ -25,7 +25,7 @@
                                 Канбан-дошка
                             </v-list-item-title>
                         </v-list-item>
-                        <v-list-item to="/users">
+                        <v-list-item to="/users" v-if="$store.getters.isAdminRole">
                             <v-list-item-icon>
                                 <v-icon>supervised_user_circle</v-icon>
                             </v-list-item-icon>
